@@ -1,6 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from common.dao.mysql_common import insert_objects_to_db
 from common.tools.proxy_tool import proxy_https
+from common.db.mysql import novel_connection
 import scrapy
 
 from common.model.novel_info_model import ChapterInfo, NovelInfo, TagInfo
@@ -91,7 +93,8 @@ class Syosetu(scrapy.Spider):
                 tag_info = TagInfo()
                 tag_info.tag_name = tag.xpath('./text()').extract()[0]
                 tag_info.tag_href = ROUTE_URL + tag.xpath('./@href').extract()[0]
-                tags.append(tag_info)
+                #tags.append(tag_info)
+                tags.append(tag_info.tag_name)
             novel_last_update_time = ''
             nluts = novel_table.xpath('./td[2]/text()').extract()
             for nlut in nluts:
@@ -103,7 +106,8 @@ class Syosetu(scrapy.Spider):
             novel_info.type = novel_type
             novel_info.type_href = ROUTE_URL + novel_type_href
             novel_info.short_type = novel_short_type
-            novel_info.tags = tags
+            # todo
+            novel_info.tags = ','.join(tags)
             novel_info.state = novel_state
             novel_info.last_update_time = int(datetime.strptime(novel_last_update_time, CAPTER_TIME_FORMAT).timestamp())
             novel_info.read_time = novel_text_size_read_time[0]
@@ -115,6 +119,8 @@ class Syosetu(scrapy.Spider):
         novel_info = response.meta[NOVEL_MODEL_KEY]
         chapters = response.xpath('//dl[@class="novel_sublist2"]')
         novel_info.chapter_number = len(chapters)
+        # todo
+        insert_objects_to_db(novel_connection, 'novel_info', [novel_info], ignore_fields=['chapters'])
         for i, chapter in enumerate(chapters):
             chapter_info = ChapterInfo()
             chapter_title = chapter.xpath('./dd/a/text()').extract()[0].replace('\n', '')
@@ -143,7 +149,9 @@ class Syosetu(scrapy.Spider):
                     t = '\n'
                 else:
                     t = ts[0].replace('\n', '')
-                chapter_info.content.append(t)
+                # todo
+                chapter_info.content += '\n' + t
                 novel_info.chapters.append(chapter_info)
-        return novel_info
-            
+        # todo
+        insert_objects_to_db(novel_connection, 'chapter_info', [chapter_info])
+        

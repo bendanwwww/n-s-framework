@@ -10,14 +10,14 @@ class NovelInfo:
         # novel short type
         self.short_type = ''
         # novel tags
-        self.tags = []
+        self.tags = ''
         # 0: finished 1: unfinished
         self.state = 0
         self.last_update_time = 0
         # how long does it take to finish reading
         self.read_time = ''
         self.text_size = 0
-        self.chapter_number = ''
+        self.chapter_number = 0
         self.abstract = ''
         self.chapters = []
 
@@ -36,6 +36,6 @@ class ChapterInfo:
         self.chapter_title = ''
         self.chapter_href = ''
         self.write_time = 0
-        self.content = []
+        self.content = ''
 
 print(NovelInfo().__dict__)
