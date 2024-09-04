@@ -139,19 +139,20 @@ class Syosetu(scrapy.Spider):
     def novel_chapter_content(self, response):
         novel_info = response.meta[NOVEL_MODEL_KEY]
         chapter_info = response.meta[CAPTER_MODEL_KEY]
-        chapter_contents = response.xpath('//div[@class="novel_view"]')
-        for content in chapter_contents:
-            texts = content.xpath('./p[*]')
-            for text in texts:
-                t = ''
-                ts = text.xpath('./text()').extract()
-                if len(ts) == 0:
-                    t = '\n'
-                else:
-                    t = ts[0].replace('\n', '')
-                # todo
-                chapter_info.content += '\n' + t
-                novel_info.chapters.append(chapter_info)
+        chapter_contents_before = response.xpath('//div[@id="novel_p"]//text()').getall()
+        chapter_contents = response.xpath('//div[@id="novel_honbun"]//text()').getall()
+        chapter_contents_after = response.xpath('//div[@id="novel_a"]//text()').getall()
+        # todo
+        if len(chapter_contents_before) != 0:
+            chapter_contents_before = [item for item in chapter_contents_before if item != '\n']
+        if len(chapter_contents) != 0:
+            chapter_contents = [item for item in chapter_contents if item != '\n']
+        if len(chapter_contents_after) != 0:
+            chapter_contents_after = [item for item in chapter_contents_after if item != '\n']
+        chapter_info.content_before = ''.join(chapter_contents_before).strip().replace('\u3000', ' ')
+        chapter_info.content = ''.join(chapter_contents).strip().replace('\u3000', ' ')
+        chapter_info.content_after = ''.join(chapter_contents_after).strip().replace('\u3000', ' ')
+        novel_info.chapters.append(chapter_info)
         # todo
         insert_objects_to_db(novel_connection, 'chapter_info', [chapter_info])
         

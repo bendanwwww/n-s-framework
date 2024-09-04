@@ -36,6 +36,8 @@ class ChapterInfo:
         self.chapter_title = ''
         self.chapter_href = ''
         self.write_time = 0
+        self.content_before = ''
         self.content = ''
+        self.content_after = ''
 
 print(NovelInfo().__dict__)
