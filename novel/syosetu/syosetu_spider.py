@@ -44,7 +44,7 @@ class Syosetu(scrapy.Spider):
     order = 'new'
     word = ''
 
-    for page in range(1, 2) :
+    for page in range(1, 5) :
         start_urls.append(URL.format(page=page, order=order, word=word))
 
     def __init__(self, *args, **kwargs):
@@ -76,7 +76,7 @@ class Syosetu(scrapy.Spider):
             ns = ''.join(novel_table.xpath('./td[@class="left"]/text()').extract())
             if '完結済' not in ns:
                 novel_state = 1
-            novel_abstract = novel_table.xpath('./td[2]/div[@class="ex"]/text()').extract()[0].replace('\n', '')
+            novel_abstract = novel_table.xpath('./td[2]/div[@class="ex"]/text()').extract()[0].replace('\n', '').replace('\u3000', ' ')
             novel_type = novel_table.xpath('./td[2]/a[1]/text()').extract()[0]
             novel_type_href = novel_table.xpath('./td[2]/a[1]/@href').extract()[0]
             novel_short_type = ''
@@ -120,7 +120,7 @@ class Syosetu(scrapy.Spider):
         chapters = response.xpath('//dl[@class="novel_sublist2"]')
         novel_info.chapter_number = len(chapters)
         # todo
-        insert_objects_to_db(novel_connection, 'novel_info', [novel_info], ignore_fields=['chapters'])
+        insert_objects_to_db(novel_connection, 'novel_info', [novel_info], ignore_fields=['id', 'chapters'])
         for i, chapter in enumerate(chapters):
             chapter_info = ChapterInfo()
             chapter_title = chapter.xpath('./dd/a/text()').extract()[0].replace('\n', '')
@@ -139,20 +139,29 @@ class Syosetu(scrapy.Spider):
     def novel_chapter_content(self, response):
         novel_info = response.meta[NOVEL_MODEL_KEY]
         chapter_info = response.meta[CAPTER_MODEL_KEY]
-        chapter_contents_before = response.xpath('//div[@id="novel_p"]//text()').getall()
-        chapter_contents = response.xpath('//div[@id="novel_honbun"]//text()').getall()
-        chapter_contents_after = response.xpath('//div[@id="novel_a"]//text()').getall()
+        before = response.xpath('//div[@id="novel_p"]//text()').getall()
+        contents = response.xpath('//div[@id="novel_honbun"]//text()').getall()
+        after = response.xpath('//div[@id="novel_a"]//text()').getall()
         # todo
-        if len(chapter_contents_before) != 0:
-            chapter_contents_before = [item for item in chapter_contents_before if item != '\n']
-        if len(chapter_contents) != 0:
-            chapter_contents = [item for item in chapter_contents if item != '\n']
-        if len(chapter_contents_after) != 0:
-            chapter_contents_after = [item for item in chapter_contents_after if item != '\n']
+        chapter_contents_before = []
+        chapter_contents = []
+        chapter_contents_after = []
+        for t in before:
+            if t == '\n' and len(chapter_contents_before) != 0 and chapter_contents_before[-1] == '\n' :
+                continue
+            chapter_contents_before.append(t)
+        for t in contents:
+            if t == '\n' and len(chapter_contents) != 0 and chapter_contents[-1] == '\n' :
+                continue
+            chapter_contents.append(t)
+        for t in after:
+            if t == '\n' and len(chapter_contents_after) != 0 and chapter_contents_after[-1] == '\n' :
+                continue
+            chapter_contents_after.append(t)
         chapter_info.content_before = ''.join(chapter_contents_before).strip().replace('\u3000', ' ')
         chapter_info.content = ''.join(chapter_contents).strip().replace('\u3000', ' ')
         chapter_info.content_after = ''.join(chapter_contents_after).strip().replace('\u3000', ' ')
         novel_info.chapters.append(chapter_info)
         # todo
-        insert_objects_to_db(novel_connection, 'chapter_info', [chapter_info])
+        insert_objects_to_db(novel_connection, 'chapter_info', [chapter_info], ignore_fields=['id'])
         

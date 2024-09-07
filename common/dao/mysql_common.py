@@ -46,3 +46,56 @@ def insert_objects_to_db(connection, table_name, objects, ignore_fields=None):
         print(f"Error: {err}")
     finally:
         cursor.close()
+
+def fetch_data_and_convert_to_class(connection, table_name, class_obj, ignore_fields=None, extra_condition=None):
+    """
+    Fetches data from the given MySQL table and converts each row into an instance of the provided class.
+    
+    Args:
+        connection: The MySQL database connection object.
+        table_name: The name of the table from which to fetch data.
+        class_obj: The class to which the data will be mapped (with no-arg __init__).
+        ignore_fields: A list of field names in the class to ignore if not present in the MySQL table.
+        extra_condition: An optional SQL condition to filter the results (e.g., 'WHERE id = 5').
+    
+    Returns:
+        A list of class_obj instances populated with data from the MySQL table.
+    """
+    if ignore_fields is None:
+        ignore_fields = []
+
+    # Create a cursor to execute SQL queries
+    cursor = connection.cursor()
+
+    # Build the SQL query dynamically, incorporating the query condition if provided
+    query = f"SELECT * FROM {table_name}"
+    if extra_condition:
+        query += f" {extra_condition}"
+    
+    cursor.execute(query)
+
+    # Get column names from the cursor description
+    column_names = [desc[0] for desc in cursor.description]
+
+    # Fetch all rows from the executed query
+    rows = cursor.fetchall()
+
+    # Close the cursor
+    cursor.close()
+
+    # Dynamically map the data to the provided class
+    object_list = []
+    for row in rows:
+        # Create an instance of the class with no arguments
+        obj = class_obj()
+
+        # Populate the attributes of the class object
+        for field, value in zip(column_names, row):
+            if field not in ignore_fields and hasattr(obj, field):
+                setattr(obj, field, value)
+
+        object_list.append(obj)
+
+    return object_list
+
+

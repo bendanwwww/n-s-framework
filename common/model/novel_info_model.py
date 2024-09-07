@@ -1,5 +1,6 @@
 class NovelInfo:
     def __init__(self): 
+        self.id = 0
         self.href = ''
         self.title = ''
         self.author = ''
@@ -28,6 +29,7 @@ class TagInfo:
 
 class ChapterInfo:
     def __init__(self): 
+        self.id = 0
         self.novel_href = ''
         self.novel_title = ''
         self.novel_author = ''
@@ -39,5 +41,3 @@ class ChapterInfo:
         self.content_before = ''
         self.content = ''
         self.content_after = ''
-
-print(NovelInfo().__dict__)
