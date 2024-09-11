@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from common.dao.mysql_common import insert_objects_to_db
+from common.dao.mysql_common import fetch_data_and_convert_to_class, insert_objects_to_db
 from common.tools.proxy_tool import proxy_https
 from common.db.mysql import novel_connection
 import scrapy
@@ -43,13 +43,18 @@ class Syosetu(scrapy.Spider):
     # business field
     order = 'new'
     word = ''
+    db_novel = {}
 
-    for page in range(1, 5) :
+    for page in range(20, 40) :
         start_urls.append(URL.format(page=page, order=order, word=word))
 
     def __init__(self, *args, **kwargs):
         super(Syosetu, self).__init__(*args, **kwargs)
         self.executor = ThreadPoolExecutor(max_workers=5)
+        # init novel urls in db
+        novel_list = fetch_data_and_convert_to_class(novel_connection, 'novel_info', NovelInfo, ignore_fields=['chapters'])
+        for novel in novel_list:
+            self.db_novel[novel.href] = True
         
     # def start_requests(self):
     #     for url in self.start_urls:
@@ -65,6 +70,10 @@ class Syosetu(scrapy.Spider):
             title = novel_h.xpath("./a/text()").extract()[0]
             author = novel.xpath("./a/text()").extract()[0]
             n_code = novel.xpath("./text()").extract()[-2].split('：')[-1].replace('\n', '')
+            # filter repeat novel
+            if href in self.db_novel:
+                print(f'novel: {title}, url: {href} is in, skip.')
+                continue
             # set base info
             novel_info.href = href
             novel_info.title = title
